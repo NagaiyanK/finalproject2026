@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Naya Labs — Warehouse Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-muted: #64748b;
+    --brand: #0369a1;
+    --brand-light: #e0f2fe;
+    --brand-mid: #0284c7;
+    --border: #e2e8f0;
+    --emerald: #10b981;
+    --emerald-bg: #d1fae5;
+    --amber: #f59e0b;
+    --amber-bg: #fef3c7;
+    --red: #ef4444;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg-secondary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+
+  /* LOGIN */
+  #view-login { min-height: 100vh; background: var(--bg-secondary); background-image: radial-gradient(circle at 20% 20%, rgba(3,105,161,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(16,185,129,0.05) 0%, transparent 50%); display: flex; align-items: center; justify-content: center; }
+  .login-card { background: white; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-lg); padding: 48px 48px 40px; width: 420px; max-width: 95vw; }
+  .login-logo-ring { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #0369a1, #0284c7); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(3,105,161,0.25); }
+  .login-brand { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .login-subtitle { font-size: 11px; font-weight: 500; letter-spacing: 1.5px; color: var(--brand); text-transform: uppercase; margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .login-divider { height: 1px; background: var(--border); margin: 28px 0; }
+  .field-label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  .login-input { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 14px; color: var(--text-primary); background: var(--bg-secondary); outline: none; transition: border-color 0.15s, box-shadow 0.15s; margin-bottom: 16px; }
+  .login-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(3,105,161,0.08); background: white; }
+  .login-input.error { border-color: var(--red); }
+  .login-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #0369a1, #0284c7); color: white; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; margin-top: 4px; box-shadow: 0 2px 8px rgba(3,105,161,0.2); }
+  .login-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(3,105,161,0.3); }
+  .login-btn:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
+  .login-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #dc2626; margin-top: 12px; display: none; font-family: 'DM Mono', monospace; align-items: center; gap: 6px; }
+  .login-error.show { display: flex; }
+  .security-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); margin-top: 18px; justify-content: center; font-family: 'DM Mono', monospace; }
+  .setup-notice { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; display: none; }
+  .setup-notice.show { display: block; }
+  .setup-notice-title { font-size: 12px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+  .setup-notice-body { font-size: 11px; color: #78350f; line-height: 1.55; }
+
+  /* NAVBAR */
+  #navbar { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .nav-brand { display: flex; align-items: center; gap: 10px; }
+  .nav-logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #0369a1, #0284c7); display: flex; align-items: center; justify-content: center; }
+  .nav-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+  .nav-sub { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text-muted); letter-spacing: 1px; margin-top: 1px; }
+  .nav-tabs { display: flex; gap: 4px; background: var(--bg-secondary); border-radius: 8px; padding: 3px; border: 1px solid var(--border); }
+  .nav-tab { padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: all 0.15s; letter-spacing: 0.3px; }
+  .nav-tab.active { background: white; color: var(--brand); box-shadow: var(--shadow); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-status { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); animation: pulseDot 2s infinite; }
+  .status-dot.offline { background: var(--red); animation: none; }
+  .nav-operator { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); background: var(--bg-secondary); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-refresh-btn { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: white; color: var(--text-muted); cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
+  .nav-refresh-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .nav-refresh-btn.spinning span { display: inline-block; animation: spin 0.8s linear infinite; }
+  .data-source-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 3px 8px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
+  .data-source-badge.live { color: #059669; background: var(--emerald-bg); border-color: #6ee7b7; }
+  .data-source-badge.demo { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* VSM */
+  #view-vsm { padding: 20px 24px; min-height: calc(100vh - 56px); }
+  .vsm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .vsm-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .vsm-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .vsm-stats { display: flex; gap: 12px; }
+  .vsm-stat { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; text-align: center; box-shadow: var(--shadow); }
+  .vsm-stat-val { font-size: 18px; font-weight: 700; color: var(--brand); font-family: 'DM Mono', monospace; }
+  .vsm-stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px; }
+  .vsm-map { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 12px; min-height: calc(100vh - 200px); background: white; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-md); position: relative; }
+  .vsm-zone { padding: 16px; display: flex; flex-direction: column; align-items: center; position: relative; }
+  .vsm-zone-1 { background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%); border-right: 1px dashed var(--border); }
+  .vsm-zone-2 { background: white; }
+  .vsm-zone-3 { background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%); border-left: 1px dashed var(--border); }
+  .zone-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-family: 'DM Mono', monospace; border: 1px solid var(--border); background: white; padding: 4px 10px; border-radius: 20px; margin-bottom: 14px; white-space: nowrap; }
+  .gate-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 8px 16px; border-radius: 8px; font-family: 'DM Mono', monospace; }
+  .gate-in { background: var(--brand-light); color: var(--brand); border: 1.5px solid var(--brand); }
+  .gate-out { background: var(--emerald-bg); color: #059669; border: 1.5px solid var(--emerald); }
+  .flow-arrow-down { font-size: 18px; color: var(--border); margin: 8px 0; }
+  .dock-wall { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
+  .dock { background: white; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; transition: all 0.3s; box-shadow: var(--shadow); }
+  .dock.active-amber { border-color: var(--amber); background: var(--amber-bg); box-shadow: 0 0 12px rgba(245,158,11,0.2); }
+  .dock.active-green { border-color: var(--emerald); background: var(--emerald-bg); box-shadow: 0 0 12px rgba(16,185,129,0.2); }
+  .dock.active-red { border-color: var(--red); background: #fef2f2; box-shadow: 0 0 12px rgba(239,68,68,0.15); }
+  .dock-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .dock-info .dock-id { font-size: 12px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .dock-info .dock-status { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .dock-info .dock-cargo { font-size: 9px; color: var(--brand); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .dock-indicator { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; margin-left: auto; flex-shrink: 0; }
+  .dock.active-amber .dock-indicator { background: var(--amber); animation: pulseDot 1s infinite; }
+  .dock.active-green .dock-indicator { background: var(--emerald); animation: pulseDot 1s infinite; }
+  .dock.active-red .dock-indicator { background: var(--red); animation: pulseDot 0.5s infinite; }
+  .vsm-rack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; margin: 12px 0; }
+  .rack { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 6px; text-align: center; }
+  .rack-row { display: flex; gap: 3px; margin-bottom: 3px; }
+  .rack-cell { flex: 1; height: 8px; border-radius: 2px; background: var(--border); }
+  .rack-cell.fill-hi { background: #0369a1; opacity: 0.5; }
+  .rack-cell.fill-mid { background: #f59e0b; opacity: 0.6; }
+  .rack-cell.fill-lo { background: #10b981; opacity: 0.5; }
+  .rack-label { font-size: 8px; font-family: 'DM Mono', monospace; color: var(--text-muted); margin-top: 3px; }
+  .conveyor-area { width: 100%; background: linear-gradient(90deg, #f0f9ff, #f0fdf4); border: 1px dashed var(--brand); border-radius: 8px; padding: 12px; margin: 8px 0; display: flex; align-items: center; justify-content: center; gap: 8px; overflow: hidden; }
+  .conveyor-label { font-size: 10px; font-weight: 600; color: var(--brand); letter-spacing: 1px; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+  .conveyor-belt { display: flex; gap: 4px; align-items: center; }
+  .belt-segment { width: 16px; height: 6px; border-radius: 3px; background: var(--brand); opacity: 0.2; animation: beltMove 1.5s infinite linear; }
+  .belt-segment:nth-child(2) { animation-delay: 0.3s; }
+  .belt-segment:nth-child(3) { animation-delay: 0.6s; }
+  .belt-segment:nth-child(4) { animation-delay: 0.9s; }
+  .belt-segment:nth-child(5) { animation-delay: 1.2s; }
+  @keyframes beltMove { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.5; } }
+  .flow-particle { position: absolute; font-size: 18px; z-index: 50; pointer-events: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15)); }
+
+  /* ANALYTICS */
+  #view-analytics { padding: 20px 24px; min-height: calc(100vh - 56px); display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .chart-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+  .chart-card-title { font-size: 13px; font-weight: 700; }
+  .chart-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; margin-bottom: 14px; }
+  .chart-wrap { position: relative; height: 180px; }
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+  .kpi-card { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+  .kpi-icon { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .kpi-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
+  .kpi-label { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .kpi-delta { font-size: 10px; font-weight: 600; margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .kpi-delta.pos { color: var(--emerald); }
+  .kpi-delta.neg { color: var(--red); }
+
+  /* AI SIDEBAR */
+  .ai-sidebar { background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 100px); position: sticky; top: 76px; }
+  .ai-sidebar-header { padding: 16px 18px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, #f8fafc, white); }
+  .ai-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--brand); background: var(--brand-light); border: 1px solid rgba(3,105,161,0.2); padding: 3px 8px; border-radius: 20px; font-family: 'DM Mono', monospace; margin-bottom: 6px; }
+  .ai-title { font-size: 15px; font-weight: 700; }
+  .ai-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .ai-chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .ai-msg { padding: 12px 14px; border-radius: 10px; font-size: 12.5px; line-height: 1.55; animation: fadeSlideIn 0.3s ease; }
+  .ai-msg.system { background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 11px; }
+  .ai-msg.assistant { background: var(--brand-light); border: 1px solid rgba(3,105,161,0.15); color: var(--text-primary); }
+  .ai-msg .bullet { margin-bottom: 8px; display: flex; gap: 6px; align-items: flex-start; }
+  .ai-msg .bullet:last-child { margin-bottom: 0; }
+  .ai-msg .bullet-dot { color: var(--brand); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .ai-footer { padding: 14px 16px; border-top: 1px solid var(--border); }
+  .ai-gen-btn { width: 100%; padding: 11px; background: linear-gradient(135deg, #0369a1, #0284c7); color: white; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 6px rgba(3,105,161,0.2); }
+  .ai-gen-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(3,105,161,0.3); }
+  .ai-gen-btn:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
+  .typing-cursor { display: inline-block; width: 2px; height: 12px; background: var(--brand); border-radius: 1px; animation: blink 0.7s infinite; vertical-align: middle; margin-left: 2px; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* SKELETON */
+  .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 20px; right: 20px; z-index: 9999; color: white; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-family: 'DM Mono', monospace; box-shadow: var(--shadow-lg); transform: translateY(60px); opacity: 0; transition: all 0.3s; pointer-events: none; }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: #059669; }
+  #toast.error { background: #dc2626; }
+  #toast.info { background: var(--brand); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ═══ VIEW 1: LOGIN ═══ -->
+<div id="view-login">
+  <div class="login-card">
+    <div class="login-logo-ring">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10" fill="rgba(255,255,255,0.35)"/></svg>
+    </div>
+    <div class="login-brand">NAYA LABS</div>
+    <div class="login-subtitle">WERC Tier-2 Access · Warehouse Command</div>
+    <div class="login-divider"></div>
+    <div class="setup-notice" id="setup-notice">
+      <div class="setup-notice-title">⚙️ Demo Mode — Apps Script Not Configured</div>
+      <div class="setup-notice-body">Deploy <b>Code.gs</b> as a Google Apps Script Web App and paste the URL into <b>SCRIPT_URL</b> in this file. Until then, any credentials will work and demo data will be shown.</div>
+    </div>
+    <div>
+      <div class="field-label">Operator ID</div>
+      <input class="login-input" type="text" id="login-id" placeholder="e.g. OP-2024-001" autocomplete="off"/>
+      <div class="field-label">Passcode</div>
+      <input class="login-input" type="password" id="login-pw" placeholder="••••••••" autocomplete="off"/>
+      <button class="login-btn" id="login-btn" onclick="handleLogin()">Secure Login</button>
+      <div class="login-error" id="login-error">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="login-error-text">Invalid credentials</span>
+      </div>
+    </div>
+    <div class="security-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Verified via Google Sheets · WERC Compliant
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NAVBAR ═══ -->
+<div id="navbar" class="hidden">
+  <div class="nav-brand">
+    <div class="nav-logo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div>
+      <div class="nav-title">NAYA LABS</div>
+      <div class="nav-sub">Warehouse Command Center</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-vsm" onclick="switchView('vsm')">⬡ VSM Process Flow</button>
+    <button class="nav-tab" id="tab-analytics" onclick="switchView('analytics')">◈ Analytics</button>
+  </div>
+  <div class="nav-right">
+    <span class="data-source-badge demo" id="data-source-badge">⬤ Demo Mode</span>
+    <button class="nav-refresh-btn" id="refresh-btn" onclick="refreshData()"><span>↻</span> Sync</button>
+    <div class="nav-operator" id="nav-operator">—</div>
+    <div class="nav-status">
+      <div class="status-dot offline" id="status-dot"></div>
+      <span id="live-time"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW 2: VSM ═══ -->
+<div id="view-vsm" class="hidden">
+  <div class="vsm-header">
+    <div>
+      <div class="vsm-title">Value Stream Map — Flow-Through Model</div>
+      <div class="vsm-subtitle">Real-time dock activity · Synced from Google Sheets · Arrow = active shipment</div>
+    </div>
+    <div class="vsm-stats">
+      <div class="vsm-stat"><div class="vsm-stat-val" id="stat-active">0</div><div class="vsm-stat-label">Active Flows</div></div>
+      <div class="vsm-stat"><div class="vsm-stat-val" id="stat-tat">—</div><div class="vsm-stat-label">Avg TAT</div></div>
+      <div class="vsm-stat"><div class="vsm-stat-val" id="stat-werc">—</div><div class="vsm-stat-label">WERC Score</div></div>
+    </div>
+  </div>
+  <div class="vsm-map" id="vsm-map">
+    <!-- ZONE 1: INBOUND -->
+    <div class="vsm-zone vsm-zone-1">
+      <div class="zone-label">Zone 1: Inbound Logistics</div>
+      <div class="gate-badge gate-in">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        GATE IN
+      </div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="dock-wall" id="inbound-docks"></div>
+    </div>
+    <!-- ZONE 2: PROCESSING -->
+    <div class="vsm-zone vsm-zone-2">
+      <div class="zone-label">Zone 2: Sortation & VSM Flow</div>
+      <div class="vsm-rack-grid">
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-mid"></div></div><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-lo"></div></div><div class="rack-label">R-A01</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-hi"></div></div><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-mid"></div></div><div class="rack-label">R-A02</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div></div><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div></div><div class="rack-label">R-B01</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-mid"></div><div class="rack-cell fill-lo"></div></div><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-hi"></div></div><div class="rack-label">R-B02</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-mid"></div><div class="rack-cell fill-lo"></div></div><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-mid"></div></div><div class="rack-label">R-C01</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div></div><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-mid"></div><div class="rack-cell fill-hi"></div></div><div class="rack-label">R-C02</div></div>
+      </div>
+      <div class="conveyor-area">
+        <div class="conveyor-belt"><div class="belt-segment"></div><div class="belt-segment"></div><div class="belt-segment"></div><div class="belt-segment"></div><div class="belt-segment"></div></div>
+        <div class="conveyor-label">→ Conveyor Flow →</div>
+        <div class="conveyor-belt"><div class="belt-segment"></div><div class="belt-segment"></div><div class="belt-segment"></div><div class="belt-segment"></div><div class="belt-segment"></div></div>
+      </div>
+      <div class="vsm-rack-grid">
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-mid"></div></div><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-lo"></div></div><div class="rack-label">R-D01</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div></div><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-mid"></div><div class="rack-cell fill-hi"></div></div><div class="rack-label">R-D02</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div></div><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-mid"></div></div><div class="rack-label">R-E01</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-mid"></div><div class="rack-cell fill-hi"></div></div><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-lo"></div></div><div class="rack-label">R-E02</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-lo"></div><div class="rack-cell fill-mid"></div></div><div class="rack-row"><div class="rack-cell fill-lo"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-hi"></div></div><div class="rack-label">R-F01</div></div>
+        <div class="rack"><div class="rack-row"><div class="rack-cell fill-hi"></div><div class="rack-cell fill-mid"></div><div class="rack-cell fill-lo"></div></div><div class="rack-row"><div class="rack-cell fill-mid"></div><div class="rack-cell fill-hi"></div><div class="rack-cell fill-lo"></div></div><div class="rack-label">R-F02</div></div>
+      </div>
+    </div>
+    <!-- ZONE 3: OUTBOUND -->
+    <div class="vsm-zone vsm-zone-3">
+      <div class="zone-label">Zone 3: Outbound Logistics</div>
+      <div class="dock-wall" id="outbound-docks"></div>
+      <div class="flow-arrow-down" style="margin-top:auto;">↓</div>
+      <div class="gate-badge gate-out" style="margin-top:8px;">
+        GATE OUT
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW 3: ANALYTICS ═══ -->
+<div id="view-analytics" class="hidden">
+  <div class="analytics-main">
+    <div class="kpi-strip" id="kpi-strip">
+      <div class="kpi-card"><div class="kpi-icon" style="background:#dbeafe;">⏱️</div><div><div class="kpi-val skeleton" style="width:60px;height:24px;margin-bottom:4px;"></div><div class="kpi-label">Loading...</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#d1fae5;">📦</div><div><div class="kpi-val skeleton" style="width:60px;height:24px;margin-bottom:4px;"></div><div class="kpi-label">Loading...</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#fef3c7;">✅</div><div><div class="kpi-val skeleton" style="width:60px;height:24px;margin-bottom:4px;"></div><div class="kpi-label">Loading...</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#f0f9ff;">🏭</div><div><div class="kpi-val skeleton" style="width:60px;height:24px;margin-bottom:4px;"></div><div class="kpi-label">Loading...</div></div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-card-title">TAT Optimization</div><div class="chart-card-sub">Baseline vs Optimized (minutes)</div><div class="chart-wrap"><canvas id="chart-tat"></canvas></div></div>
+      <div class="chart-card"><div class="chart-card-title">WERC Compliance</div><div class="chart-card-sub">Current period assessment</div><div class="chart-wrap"><canvas id="chart-werc"></canvas></div></div>
+      <div class="chart-card"><div class="chart-card-title">Throughput Trend</div><div class="chart-card-sub">Hourly unit processing rate</div><div class="chart-wrap"><canvas id="chart-throughput"></canvas></div></div>
+      <div class="chart-card"><div class="chart-card-title">Zone Utilization</div><div class="chart-card-sub">% capacity by zone</div><div class="chart-wrap"><canvas id="chart-zones"></canvas></div></div>
+    </div>
+  </div>
+  <div class="ai-sidebar">
+    <div class="ai-sidebar-header">
+      <div class="ai-badge">⬡ AI Intelligence</div>
+      <div class="ai-title">Gemini Intelligence</div>
+      <div class="ai-sub">Naya Labs Supply Chain Advisor</div>
+    </div>
+    <div class="ai-chat" id="ai-chat">
+      <div class="ai-msg system">System initialized. Awaiting data sync from Google Sheets backend.</div>
+    </div>
+    <div class="ai-footer">
+      <button class="ai-gen-btn" id="ai-gen-btn" onclick="generateSummary()">⚡ Generate Executive Summary</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  CONFIGURATION
+//  → Paste your deployed Apps Script Web App
+//    URL into SCRIPT_URL after deploying Code.gs
+// ══════════════════════════════════════════
+const SCRIPT_URL = "PLACEHOLDER";
+const GEMINI_KEY = "PLACEHOLDER";
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+const S = {
+  view: 'login', operator: null, data: null,
+  isLive: false, vsmStarted: false,
+  activeFlows: 0, chartsInited: false, charts: {}
+};
+
+// ══════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  if (SCRIPT_URL === 'PLACEHOLDER') document.getElementById('setup-notice').classList.add('show');
+  document.getElementById('login-id').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pw').focus(); });
+  document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+  startClock();
+});
+
+// ══════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function toast(msg, type = 'info', ms = 3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `show ${type}`;
+  setTimeout(() => t.className = '', ms);
+}
+
+function api(params) {
+  if (SCRIPT_URL === 'PLACEHOLDER') return Promise.resolve(null);
+  const qs = new URLSearchParams(params).toString();
+  return fetch(`${SCRIPT_URL}?${qs}`, { method: 'GET' })
+    .then(r => r.json())
+    .catch(() => null);
+}
+
+// ══════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════
+function startClock() {
+  const tick = () => {
+    const el = document.getElementById('live-time');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+  tick(); setInterval(tick, 1000);
+}
+
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+async function handleLogin() {
+  const btn  = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  const id   = document.getElementById('login-id').value.trim();
+  const pw   = document.getElementById('login-pw').value.trim();
+
+  errEl.classList.remove('show');
+  ['login-id','login-pw'].forEach(i => document.getElementById(i).classList.remove('error'));
+
+  if (!id || !pw) {
+    document.getElementById('login-error-text').textContent = 'Please enter your Operator ID and Passcode.';
+    errEl.classList.add('show');
+    if (!id) document.getElementById('login-id').classList.add('error');
+    if (!pw) document.getElementById('login-pw').classList.add('error');
+    return;
+  }
+
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+
+  if (SCRIPT_URL === 'PLACEHOLDER') {
+    await sleep(1000);
+    S.operator = { id, name: id, role: 'Demo Operator' };
+    launchApp(false);
+    return;
+  }
+
+  const res = await api({ action: 'login', operatorId: id, passcode: pw });
+  if (res && res.success) {
+    S.operator = res.operator;
+    launchApp(true);
+  } else {
+    const msg = (res && res.error) ? res.error : 'Invalid credentials. Please try again.';
+    document.getElementById('login-error-text').textContent = msg;
+    errEl.classList.add('show');
+    ['login-id','login-pw'].forEach(i => document.getElementById(i).classList.add('error'));
+    btn.textContent = 'Secure Login'; btn.disabled = false;
+  }
+}
+
+function launchApp(live) {
+  S.isLive = live;
+  document.getElementById('view-login').classList.add('hidden');
+  document.getElementById('navbar').classList.remove('hidden');
+  document.getElementById('nav-operator').textContent =
+    (S.operator.name || S.operator.id) + ' · ' + (S.operator.role || 'Operator');
+  switchView('vsm');
+  loadData();
+  setInterval(loadData, 60000); // auto-refresh every 60s
+}
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+function switchView(v) {
+  ['vsm','analytics'].forEach(n => {
+    document.getElementById(`view-${n}`).classList.add('hidden');
+    document.getElementById(`tab-${n === 'analytics' ? 'analytics' : 'vsm'}`).classList.remove('active');
+  });
+  document.getElementById(`view-${v}`).classList.remove('hidden');
+  document.getElementById(`tab-${v}`).classList.add('active');
+  S.view = v;
+  if (v === 'vsm' && !S.vsmStarted) startVSMAnimation();
+  if (v === 'analytics' && S.data) setTimeout(() => { S.chartsInited = false; renderCharts(); }, 40);
+}
+
+// ══════════════════════════════════════════
+//  DATA LOADING  (Google Sheets via Apps Script)
+// ══════════════════════════════════════════
+async function loadData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+
+  let raw = null;
+  if (SCRIPT_URL !== 'PLACEHOLDER') raw = await api({ action: 'getDashboardData' });
+
+  if (raw && raw.success) {
+    S.data = raw; S.isLive = true;
+    toast('✓ Synced from Google Sheets', 'success');
+  } else {
+    S.data = demoData(); S.isLive = false;
+    if (SCRIPT_URL !== 'PLACEHOLDER') toast('⚠ Sheets unreachable — showing demo data', 'error');
+  }
+
+  updateBadge();
+  renderDocks();
+  renderVSMStats();
+  renderKPIs();
+  if (S.view === 'analytics') { S.chartsInited = false; renderCharts(); }
+  btn.classList.remove('spinning');
+}
+
+async function refreshData() {
+  toast('↻ Syncing with Google Sheets...', 'info');
+  await loadData();
+}
+
+function updateBadge() {
+  const b  = document.getElementById('data-source-badge');
+  const d  = document.getElementById('status-dot');
+  if (S.isLive) {
+    b.textContent = '⬤ Live · Google Sheets'; b.className = 'data-source-badge live';
+    d.classList.remove('offline');
+  } else {
+    b.textContent = '⬤ Demo Mode'; b.className = 'data-source-badge demo';
+    d.classList.add('offline');
+  }
+}
+
+// ══════════════════════════════════════════
+//  RENDER: VSM DOCKS  (dynamic from Sheets)
+// ══════════════════════════════════════════
+function renderDocks() {
+  const docks = S.data?.docks || demoData().docks;
+  const inEl  = document.getElementById('inbound-docks');
+  const outEl = document.getElementById('outbound-docks');
+  inEl.innerHTML = ''; outEl.innerHTML = '';
+
+  docks.forEach(d => {
+    const id     = String(d.DockID || d['Dock ID'] || d.dockId || '').trim();
+    const zone   = String(d.Zone || '').toLowerCase();
+    const status = String(d.Status || 'Standby').trim();
+    const cargo  = String(d.Cargo || '').trim();
+    const isIn   = zone.includes('in');
+
+    let cls = 'dock';
+    const st = status.toLowerCase();
+    if (['active','receiving','busy'].includes(st))     cls += ' active-amber';
+    else if (['loading','complete','ready'].includes(st)) cls += ' active-green';
+    else if (['blocked','alert','error'].includes(st))   cls += ' active-red';
+
+    const el = document.createElement('div');
+    el.className = cls; el.id = 'dock-' + id;
+    el.innerHTML = `
+      <div class="dock-icon">${isIn ? '🚛' : '🚚'}</div>
+      <div class="dock-info">
+        <div class="dock-id">${id} · ${isIn ? 'UNLOADING' : 'LOADING'}</div>
+        <div class="dock-status" id="dock-${id}-status">${status}</div>
+        ${cargo ? `<div class="dock-cargo">${cargo}</div>` : ''}
+      </div>
+      <div class="dock-indicator"></div>`;
+    (isIn ? inEl : outEl).appendChild(el);
+  });
+}
+
+function renderVSMStats() {
+  const kpis = S.data?.kpis || demoData().kpis;
+  const tat  = kpis.find(k => String(k.Metric || '').toLowerCase().includes('tat'));
+  const werc = kpis.find(k => String(k.Metric || '').toLowerCase().includes('werc'));
+  if (tat)  document.getElementById('stat-tat').textContent  = tat.Value  + (tat.Unit  || '');
+  if (werc) document.getElementById('stat-werc').textContent = werc.Value + (werc.Unit || '');
+}
+
+// ══════════════════════════════════════════
+//  RENDER: KPI STRIP
+// ══════════════════════════════════════════
+const KPI_META = [
+  { icon:'⏱️', bg:'#dbeafe', color:'#0369a1' },
+  { icon:'📦', bg:'#d1fae5', color:'#059669' },
+  { icon:'✅', bg:'#fef3c7', color:'#d97706' },
+  { icon:'🏭', bg:'#f0f9ff', color:'#0369a1' }
+];
+
+function renderKPIs() {
+  const kpis  = S.data?.kpis || demoData().kpis;
+  const strip = document.getElementById('kpi-strip');
+  strip.innerHTML = '';
+  kpis.slice(0,4).forEach((k,i) => {
+    const m = KPI_META[i] || KPI_META[0];
+    const delta = k.Delta || '';
+    const posClass = (delta.startsWith('+') || delta.startsWith('↑')) ? 'pos' : 'neg';
+    strip.innerHTML += `
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:${m.bg};">${m.icon}</div>
+        <div>
+          <div class="kpi-val" style="color:${m.color};">${k.Value}${k.Unit||''}</div>
+          <div class="kpi-label">${k.Metric}</div>
+          ${delta ? `<div class="kpi-delta ${posClass}">${delta}</div>` : ''}
+        </div>
+      </div>`;
+  });
+}
+
+// ══════════════════════════════════════════
+//  RENDER: CHARTS
+// ══════════════════════════════════════════
+function destroyChart(key) {
+  if (S.charts[key]) { S.charts[key].destroy(); S.charts[key] = null; }
+}
+
+function renderCharts() {
+  if (S.chartsInited) return;
+  S.chartsInited = true;
+  Chart.defaults.font.family = 'DM Sans';
+  const d = S.data || demoData();
+
+  // TAT Bar
+  destroyChart('tat');
+  S.charts.tat = new Chart(document.getElementById('chart-tat'), {
+    type: 'bar',
+    data: {
+      labels: d.tat.map(r => r.Stage),
+      datasets: [
+        { label:'Baseline (mins)',  data: d.tat.map(r => +r.Baseline),  backgroundColor:'rgba(100,116,139,0.18)', borderColor:'#64748b', borderWidth:1.5, borderRadius:4 },
+        { label:'Optimized (mins)', data: d.tat.map(r => +r.Optimized), backgroundColor:'rgba(3,105,161,0.15)',   borderColor:'#0369a1', borderWidth:1.5, borderRadius:4 }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top', labels:{ boxWidth:10, font:{ size:11 } } } }, scales:{ y:{ grid:{ color:'#f1f5f9' }, ticks:{ font:{ size:10 } } }, x:{ grid:{ display:false }, ticks:{ font:{ size:10 } } } } }
+  });
+
+  // WERC Doughnut
+  destroyChart('werc');
+  const wd = d.werc.length ? d.werc : [{ Category:'Compliant', Value:82 },{ Category:'Gap', Value:18 }];
+  S.charts.werc = new Chart(document.getElementById('chart-werc'), {
+    type: 'doughnut',
+    data: {
+      labels: wd.map(r => r.Category),
+      datasets: [{ data: wd.map(r => +r.Value), backgroundColor:['#10b981','#fef3c7'], borderColor:['#059669','#f59e0b'], borderWidth:1.5 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'72%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{ size:11 }, padding:12 } }, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw}%` } } } }
+  });
+
+  // Throughput Line
+  destroyChart('throughput');
+  const c3 = document.getElementById('chart-throughput').getContext('2d');
+  const g3 = c3.createLinearGradient(0,0,0,180);
+  g3.addColorStop(0,'rgba(3,105,161,0.12)'); g3.addColorStop(1,'rgba(3,105,161,0)');
+  S.charts.throughput = new Chart(c3, {
+    type: 'line',
+    data: {
+      labels: d.throughput.map(r => r.Hour),
+      datasets: [{ label:'Units/hr', data: d.throughput.map(r => +r.Units), borderColor:'#0369a1', borderWidth:2, backgroundColor:g3, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#0369a1', pointBorderColor:'white', pointBorderWidth:1.5 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ grid:{ color:'#f1f5f9' }, ticks:{ font:{ size:10 } } }, x:{ grid:{ display:false }, ticks:{ font:{ size:9 } } } } }
+  });
+
+  // Zone Utilization Horizontal Bar
+  destroyChart('zones');
+  S.charts.zones = new Chart(document.getElementById('chart-zones'), {
+    type: 'bar',
+    data: {
+      labels: d.zoneUtilization.map(r => r.Zone),
+      datasets: [
+        { label:'Used %',      data: d.zoneUtilization.map(r => +(r.Used||r['Used%']||0)),      backgroundColor:['rgba(16,185,129,0.2)','rgba(245,158,11,0.25)','rgba(3,105,161,0.15)'], borderColor:['#10b981','#f59e0b','#0369a1'], borderWidth:1.5, borderRadius:4 },
+        { label:'Available %', data: d.zoneUtilization.map(r => +(r.Available||r['Available%']||0)), backgroundColor:'rgba(226,232,240,0.4)', borderColor:'#e2e8f0', borderWidth:1, borderRadius:4 }
+      ]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{ size:11 }, padding:10 } } }, scales:{ x:{ stacked:true, max:100, grid:{ color:'#f1f5f9' }, ticks:{ font:{ size:10 }, callback: v => v+'%' } }, y:{ stacked:true, grid:{ display:false }, ticks:{ font:{ size:10 } } } } }
+  });
+}
+
+// ══════════════════════════════════════════
+//  VSM FLOW ANIMATION
+// ══════════════════════════════════════════
+function startVSMAnimation() {
+  S.vsmStarted = true;
+  setTimeout(spawnParticle, 700);
+  setInterval(spawnParticle, 3500);
+}
+
+function docksInZone(containerId) {
+  const c = document.getElementById(containerId);
+  return c ? Array.from(c.querySelectorAll('.dock')).map(el => el.id.replace('dock-','')) : [];
+}
+
+function spawnParticle() {
+  const ins  = docksInZone('inbound-docks');
+  const outs = docksInZone('outbound-docks');
+  if (!ins.length || !outs.length) return;
+
+  const inD  = ins[Math.floor(Math.random() * ins.length)];
+  const outD = outs[Math.floor(Math.random() * outs.length)];
+  S.activeFlows++;
+  document.getElementById('stat-active').textContent = S.activeFlows;
+  activateDock(inD, 'amber', 'Receiving...');
+
+  const map = document.getElementById('vsm-map');
+  const mr  = map.getBoundingClientRect();
+  const inR = document.getElementById('dock-'+inD)?.getBoundingClientRect();
+  const outR= document.getElementById('dock-'+outD)?.getBoundingClientRect();
+  const z2  = document.querySelector('.vsm-zone-2')?.getBoundingClientRect();
+  if (!inR || !outR || !z2) return;
+
+  const sx = inR.right  - mr.left, sy = inR.top  + inR.height/2 - mr.top - 9;
+  const mx = z2.left    + z2.width/2 - mr.left,   my = z2.top + z2.height/2 - mr.top - 9;
+  const ex = outR.left  - mr.left - 18, ey = outR.top + outR.height/2 - mr.top - 9;
+
+  const p = document.createElement('div');
+  p.className = 'flow-particle'; p.textContent = '➜';
+  p.style.cssText = `left:${sx}px;top:${sy}px;color:#f59e0b;`;
+  map.style.position = 'relative';
+  map.appendChild(p);
+
+  [
+    { delay:0,    x:sx, y:sy, c:'#f59e0b' },
+    { delay:650,  x:mx, y:sy, c:'#0369a1' },
+    { delay:1200, x:mx, y:my, c:'#0369a1' },
+    { delay:1750, x:mx, y:ey, c:'#0369a1' },
+    { delay:2250, x:ex, y:ey, c:'#10b981' }
+  ].forEach((s,i,arr) => {
+    setTimeout(() => {
+      const dur = i===0 ? 10 : s.delay - arr[i-1].delay;
+      p.style.transition = `left ${dur}ms linear,top ${dur}ms linear,color ${dur}ms`;
+      p.style.left = s.x+'px'; p.style.top = s.y+'px'; p.style.color = s.c;
+    }, s.delay);
+  });
+
+  setTimeout(() => {
+    activateDock(outD, 'green', 'Loading...');
+    setTimeout(() => {
+      p.remove(); deactivateDock(inD); setTimeout(() => deactivateDock(outD), 900);
+      S.activeFlows = Math.max(0, S.activeFlows - 1);
+      document.getElementById('stat-active').textContent = S.activeFlows;
+    }, 600);
+  }, 2700);
+}
+
+function activateDock(id, type, label) {
+  const el = document.getElementById('dock-'+id);
+  const st = document.getElementById('dock-'+id+'-status');
+  if (!el) return;
+  el.classList.remove('active-amber','active-green','active-red');
+  el.classList.add(type === 'amber' ? 'active-amber' : 'active-green');
+  if (st) st.textContent = label;
+}
+
+function deactivateDock(id) {
+  const el = document.getElementById('dock-'+id);
+  const st = document.getElementById('dock-'+id+'-status');
+  if (!el) return;
+  el.classList.remove('active-amber','active-green','active-red');
+  const docks = S.data?.docks || demoData().docks;
+  const dock  = docks.find(d => String(d.DockID||d['Dock ID']||'').trim() === id);
+  if (st) st.textContent = (dock && dock.Status) || 'Standby';
+}
+
+// ══════════════════════════════════════════
+//  AI SUMMARY
+// ══════════════════════════════════════════
+async function generateSummary() {
+  const btn  = document.getElementById('ai-gen-btn');
+  const chat = document.getElementById('ai-chat');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing data...';
+
+  const cmdEl = document.createElement('div');
+  cmdEl.className = 'ai-msg system';
+  cmdEl.textContent = `> generate_executive_summary --source=${S.isLive ? 'google_sheets' : 'demo'} --scope=full`;
+  chat.appendChild(cmdEl); chat.scrollTop = chat.scrollHeight;
+  await sleep(800);
+
+  const thinkEl = document.createElement('div');
+  thinkEl.className = 'ai-msg system';
+  thinkEl.innerHTML = 'Parsing TAT data... WERC metrics... Zone utilization... <span class="typing-cursor"></span>';
+  chat.appendChild(thinkEl); chat.scrollTop = chat.scrollHeight;
+  await sleep(1400); thinkEl.remove();
+
+  const d   = S.data || demoData();
+  const kpis = d.kpis;
+  const tat  = kpis.find(k => String(k.Metric).toLowerCase().includes('tat'));
+  const werc = kpis.find(k => String(k.Metric).toLowerCase().includes('werc'));
+  const tput = kpis.find(k => String(k.Metric).toLowerCase().includes('through'));
+  const topZ = d.zoneUtilization.reduce((a,b) => +b.Used > +a.Used ? b : a, d.zoneUtilization[0]);
+
+  const tatV  = tat  ? `${tat.Value}${tat.Unit||''}` : '86m';
+  const tatD  = tat  ? (tat.Delta||'↓ 41%')         : '↓ 41%';
+  const wercV = werc ? `${werc.Value}${werc.Unit||''}` : '82%';
+  const tputV = tput ? `${tput.Value} ${tput.Unit||'units/hr'}` : '2,847 units/hr';
+  const bName = topZ ? `${topZ.Zone} at ${topZ.Used||89}% capacity` : 'Sortation (Z2) at 89% capacity';
+
+  const bullets = [
+    { icon:'📉', html:`<b>TAT Reduction (${tatD}):</b> The Naya Labs flow-through model achieved <b>${tatV}</b> average TAT — a significant improvement over the 145-minute baseline. Sortation lane optimization and cross-dock throughput are the primary drivers. Inbound receiving and outbound staging show the highest marginal gains.` },
+    { icon:'⚠️', html:`<b>Zone Bottleneck Alert:</b> <b>${bName}</b> is the primary operational constraint. This asymmetry versus other zones warrants immediate attention — consider adding a secondary sortation lane or redistributing pick-and-pack labor to balance throughput.` },
+    { icon:'✅', html:`<b>WERC Compliance & Throughput:</b> Compliance at <b>${wercV}</b> — gap remediation should target dock scheduling cadence and door-assignment logic. Throughput is healthy at <b>${tputV}</b>. Data sourced <b>${S.isLive ? 'live from Google Sheets' : 'from demo dataset'}</b>.` }
+  ];
+
+  const aiMsg = document.createElement('div');
+  aiMsg.className = 'ai-msg assistant';
+  chat.appendChild(aiMsg);
+
+  for (const item of bullets) {
+    const bDiv = document.createElement('div'); bDiv.className = 'bullet';
+    const dot  = document.createElement('span'); dot.className = 'bullet-dot'; dot.textContent = item.icon;
+    const txt  = document.createElement('span');
+    const cur  = document.createElement('span'); cur.className = 'typing-cursor';
+    bDiv.appendChild(dot); bDiv.appendChild(txt); txt.appendChild(cur);
+    aiMsg.appendChild(bDiv);
+
+    const plain = item.html.replace(/<[^>]+>/g,'');
+    for (let i = 0; i < plain.length; i++) {
+      await sleep(13);
+      txt.textContent = plain.slice(0, i+1);
+      txt.appendChild(cur);
+    }
+    cur.remove(); txt.innerHTML = item.html;
+    await sleep(280); chat.scrollTop = chat.scrollHeight;
+  }
+
+  btn.disabled = false; btn.textContent = '⚡ Regenerate Summary';
+}
+
+// ══════════════════════════════════════════
+//  DEMO / FALLBACK DATA
+//  (matches the exact column names the
+//   Apps Script returns from Google Sheets)
+// ══════════════════════════════════════════
+function demoData() {
+  return {
+    kpis: [
+      { Metric:'Avg TAT',          Value:86,   Unit:'m',  Delta:'↓ 41% vs baseline' },
+      { Metric:'Throughput',       Value:2847, Unit:'',   Delta:'↑ 12% WoW'         },
+      { Metric:'WERC Compliance',  Value:82,   Unit:'%',  Delta:'↓ 3pt vs target'   },
+      { Metric:'Zone Utilization', Value:74,   Unit:'%',  Delta:'↑ 8% MoM'          }
+    ],
+    tat: [
+      { Stage:'Receiving',  Baseline:32,  Optimized:18 },
+      { Stage:'Sortation',  Baseline:45,  Optimized:28 },
+      { Stage:'Pick/Pack',  Baseline:28,  Optimized:16 },
+      { Stage:'Outbound',   Baseline:40,  Optimized:24 },
+      { Stage:'Total TAT',  Baseline:145, Optimized:86 }
+    ],
+    throughput: [
+      {Hour:'07:00',Units:1820},{Hour:'08:00',Units:2100},{Hour:'09:00',Units:2450},
+      {Hour:'10:00',Units:2780},{Hour:'11:00',Units:2650},{Hour:'12:00',Units:2847},
+      {Hour:'13:00',Units:2910},{Hour:'14:00',Units:2760},{Hour:'15:00',Units:2600},
+      {Hour:'16:00',Units:2400},{Hour:'17:00',Units:2250},{Hour:'18:00',Units:2050}
+    ],
+    zoneUtilization: [
+      { Zone:'Inbound (Z1)',   Used:71, Available:29 },
+      { Zone:'Sortation (Z2)', Used:89, Available:11 },
+      { Zone:'Outbound (Z3)', Used:68,  Available:32  }
+    ],
+    docks: [
+      { DockID:'D1', Zone:'Inbound',  Status:'Standby', Cargo:'' },
+      { DockID:'D2', Zone:'Inbound',  Status:'Standby', Cargo:'' },
+      { DockID:'D3', Zone:'Inbound',  Status:'Standby', Cargo:'' },
+      { DockID:'D4', Zone:'Outbound', Status:'Standby', Cargo:'' },
+      { DockID:'D5', Zone:'Outbound', Status:'Standby', Cargo:'' },
+      { DockID:'D6', Zone:'Outbound', Status:'Standby', Cargo:'' },
+      { DockID:'D7', Zone:'Outbound', Status:'Standby', Cargo:'' }
+    ],
+    werc: [
+      { Category:'Compliant', Value:82 },
+      { Category:'Gap',       Value:18 }
+    ]
+  };
+}
+</script>
+</body>
+</html>
